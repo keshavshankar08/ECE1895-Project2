@@ -1,76 +1,154 @@
-#include <PCM.h>
+#include <SD.h>
+#include <SPI.h>
+#include <TMRpcm.h>
+                                        
+// Pin initializations
+const int startButtonPin = 2;           // button to trigger start the game
+const int popCloseButtonPin = 3;        // button to trigger open and close lid
+const int solenoidPin = 4;              // solenoid to open and close lid
+const int chargePotentiometerPin = A1;  // potentiometer to set charge value
+const int flashButtonPin = 5;           // button to trigger flash laser
+const int laserPin = 6;                 // laser to flash
+const int speakerPin = 9;               // speaker to announce commands
+const int sdCardPin = 10;               // sd card to hold audio files
 
-const int openClosePin = 2;
-const int laserPin = 3;
-const int chargeItPin = A1;
-const int solenoidPin = 4;
-const int speakerPin = 5;
-const int startButton = 6;
-const int flashItPin = 7;
+// Other declarations/initializations
+TMRpcm tmrpcm; 
+int potentiometerValue;
 
-const unsigned char sample[] PROGMEM = {
-  -61.68172,-59.93872,-63.46055,-64.28840,-67.38644,-74.74597,-90.30900,-74.74597,-69.48114,-67.38644,-68.03013,-65.70002,-66.22660,-62.00953,-63.86461,-61.06104,-63.07444,-60.48176,-63.86461,-60.20600,-63.86461,-61.68172,-63.07444,-66.78717,-69.48114,-78.26780,-76.32960,-74.74597,-76.32960,-65.20355,-66.22660,-61.36584,-61.68172,-59.42764,-58.26780,-57.24475,-56.68417,-57.43995,-57.63963,-57.43995,-57.84401,-57.63963,-57.43995,-58.94496,-58.94496,-61.36584,-62.00953,-65.20355,-74.74597,-80.76657,-66.22660,-66.78717,-61.36584,-59.93872,-58.05332,-56.68417,-55.66112,-54.18540,-52.92436,-51.92744,-51.51861,-50.93934,-50.66357,-50.66357,-50.39629,-50.57356,-50.30900,-50.22257,-50.57356,-50.66357,-50.75453,-50.30900,-50.75453,-50.57356,-51.12817,-51.12817,-51.51861,-51.61903,-51.82341,-52.24720,-52.80777,-53.65882,-53.16235,-54.18540,-53.40704,-54.32219,-54.60240,-54.18540,-54.05073,-54.32219,-54.46116,-54.18540,-54.60240,-55.04044,-55.34524,-55.19150,-55.04044,-54.89196,-54.46116,-53.91812
-};
-
+// Function to setup microcontroller
 void setup() {
   Serial.begin(9600);
+
+  // setup speaker
+  tmrpcm.speakerPin = speakerPin;
+  if (!SD.begin(sdCardPin)) {
+    Serial.println("SD fail");  
+    return;
+  }
+  else{   
+    Serial.println("SD ok");   
+  }
+  tmrpcm.volume(7);
+
+  // set pin modes
+  pinMode(startButtonPin, INPUT);
+  pinMode(popCloseButtonPin, INPUT);
+  pinMode(solenoidPin, OUTPUT);
+  pinMode(chargePotentiometerPin, INPUT);
+  pinMode(flashButtonPin, OUTPUT);
   pinMode(laserPin, OUTPUT);
-  pinMode(chargeItPin, INPUT);
-  pinMode(startButton, INPUT);
-  pinMode(openClosePin, INPUT);
-  startPlayback(sample, sizeof(sample));
+  pinMode(speakerPin, OUTPUT);
 }
 
+// Function to loop microcontroller
 void loop() {
-  if(digitalRead(startButton) == HIGH){
+  if(digitalRead(startButtonPin) == HIGH){
     Serial.println("Starting game...");
     delay(1000);
-    if(bopIt()){
-      if(chargeIt()){
-        
+    if(PopIt()){
+      if(ChargeIt()){
+        if(FlashIt()){
+          if(CloseIt()){
+
+          }
+        }
       }
     }
   }
 }
 
-bool bopIt() {
-  Serial.println("Bop It!");
+bool PopIt() {
+  Serial.println("Pop It!");
+  tmrpcm.play("PopIt.wav");
   unsigned long startTime = millis();
   bool buttonPressed = false;
-
   while (millis() - startTime < 2000) {
-    if (digitalRead(openClosePin) == HIGH) {
+    if (digitalRead(popCloseButtonPin) == HIGH) {
       buttonPressed = true;
       break;
     }
   }
-
   if (buttonPressed) {
-    Serial.println("You passed Bop It!");
+    digitalWrite(solenoidPin, HIGH);
+    Serial.println("You passed Pop It!");
     return true;
   } else {
-    Serial.println("Failed! Try again.");
+    digitalWrite(solenoidPin, LOW);
+    Serial.println("You failed Pop It!");
     return false;
   }
 }
 
-bool chargeIt() {
+bool ChargeIt() {
   Serial.println("Charge It!");
+  tmrpcm.play("ChargeIt.wav");
   unsigned long startTime = millis();
-  bool potentiometerReached = false;
-
+  bool potentiometerMoved = false;
   while (millis() - startTime < 2000) {
-    if (analogRead(chargeItPin) > 30) {
-      potentiometerReached = true;
+    if (analogRead(chargePotentiometerPin) > 25) {
+      potentiometerMoved = true;
+      potentiometerValue = analogRead(chargePotentiometerPin);
       break;
     }
   }
-
-  if (potentiometerReached) {
+  if (potentiometerMoved) {
     Serial.println("You passed Charge It!");
     return true;
   } else {
-    Serial.println("Failed! Try again.");
+    digitalWrite(solenoidPin, LOW);
+    Serial.println("You failed Charge It!");
     return false;
   }
+}
+
+bool FlashIt() {
+  Serial.println("Flash It!");
+  tmrpcm.play("FlashIt.wav");
+  unsigned long startTime = millis();
+  bool buttonPressed = false;
+  while (millis() - startTime < 2000) {
+    if (digitalRead(flashButtonPin) == HIGH) {
+      buttonPressed = true;
+      break;
+    }
+  }
+  if (buttonPressed) {
+    Serial.println("You passed Flash It!");
+    FlashLaser();
+    return true;
+  } else {
+    digitalWrite(laserPin, LOW);
+    digitalWrite(solenoidPin, LOW);
+    Serial.println("You failed Flash It!");
+    return false;
+  }
+}
+
+bool CloseIt() {
+  Serial.println("Close It!");
+  tmrpcm.play("CloseIt.wav");
+  unsigned long startTime = millis();
+  bool buttonPressed = false;
+  while (millis() - startTime < 2000) {
+    if (digitalRead(popCloseButtonPin) == HIGH) {
+      buttonPressed = true;
+      break;
+    }
+  }
+  if (buttonPressed) {
+    digitalWrite(solenoidPin, LOW);
+    Serial.println("You passed Close It!");
+    return true;
+  } else {
+    digitalWrite(solenoidPin, LOW);
+    Serial.println("You failed Close It!");
+    return false;
+  }
+}
+
+void FlashLaser(){
+  digitalWrite(laserPin, HIGH);
+  delay(3000);
+  digitalWrite(laserPin, LOW);
 }
