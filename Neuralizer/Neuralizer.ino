@@ -1,6 +1,7 @@
 #include <SD.h>
 #include <SPI.h>
 #include <TMRpcm.h>
+#include <EEPROM.h>
                                         
 // Pin initializations
 const int startButtonPin = 2;           // button to trigger start the game
@@ -17,7 +18,8 @@ const int sdCardPin = 10;               // sd card to hold audio files
 // Other declarations/initializations
 TMRpcm tmrpcm; 
 int potentiometerValue;
-float totalRoundTime;
+float roundTime;
+int roundScore;
 
 // Function to setup microcontroller
 void setup() {
@@ -50,7 +52,7 @@ void setup() {
 void loop() {
   if(digitalRead(startButtonPin) == HIGH){
     Serial.println("Starting game...");
-    totalRoundTime = 0.0;
+    roundTime = 0.0;
     delay(1000);
     if(PopIt()){
       digitalWrite(greenLEDPin, HIGH);
@@ -69,7 +71,15 @@ void loop() {
             delay(1000);
             digitalWrite(greenLEDPin, LOW);
             Serial.println("Your score: ");
-            Serial.println(round(totalRoundTime));
+            roundScore = round(roundTime);
+            Serial.println(roundScore);
+            int highScore;
+            EEPROM.get(0, highScore);
+            Serial.println(highScore);
+            if(roundScore < highScore) {
+              Serial.println("New high score!");
+              EEPROM.put(0, roundScore);
+            }
           }
           else {
             digitalWrite(redLEDPin, HIGH);
@@ -94,6 +104,7 @@ void loop() {
       delay(1000);
       digitalWrite(redLEDPin, LOW);
     }
+    tmrpcm.play("WillSmithWife.wav");
   }
 }
 
@@ -105,7 +116,7 @@ bool PopIt() {
   while (millis() - startTime < 2000) {
     if (digitalRead(popCloseButtonPin) == HIGH) {
       buttonPressed = true;
-      totalRoundTime += millis() - startTime;
+      roundTime += millis() - startTime;
       break;
     }
   }
@@ -129,7 +140,7 @@ bool ChargeIt() {
     if (analogRead(chargePotentiometerPin) > 25) {
       potentiometerMoved = true;
       potentiometerValue = analogRead(chargePotentiometerPin);
-      totalRoundTime += millis() - startTime;
+      roundTime += millis() - startTime;
       break;
     }
   }
@@ -151,7 +162,7 @@ bool FlashIt() {
   while (millis() - startTime < 2000) {
     if (digitalRead(flashSwitchPin) == HIGH) {
       buttonPressed = true;
-      totalRoundTime += millis() - startTime;
+      roundTime += millis() - startTime;
       break;
     }
   }
@@ -175,7 +186,7 @@ bool CloseIt() {
   while (millis() - startTime < 2000) {
     if (digitalRead(popCloseButtonPin) == HIGH) {
       buttonPressed = true;
-      totalRoundTime += millis() - startTime;
+      roundTime += millis() - startTime;
       break;
     }
   }
