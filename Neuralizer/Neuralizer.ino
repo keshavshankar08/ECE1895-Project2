@@ -7,14 +7,17 @@ const int startButtonPin = 2;           // button to trigger start the game
 const int popCloseButtonPin = 3;        // button to trigger open and close lid
 const int solenoidPin = 4;              // solenoid to open and close lid
 const int chargePotentiometerPin = A1;  // potentiometer to set charge value
-const int flashButtonPin = 5;           // button to trigger flash laser
+const int flashSwitchPin = 5;           // button to trigger flash laser
 const int laserPin = 6;                 // laser to flash
+const int greenLEDPin = 7;              // LED for action success
+const int redLEDPin = 8;                // LED for action fail
 const int speakerPin = 9;               // speaker to announce commands
 const int sdCardPin = 10;               // sd card to hold audio files
 
 // Other declarations/initializations
 TMRpcm tmrpcm; 
 int potentiometerValue;
+float totalRoundTime;
 
 // Function to setup microcontroller
 void setup() {
@@ -36,24 +39,60 @@ void setup() {
   pinMode(popCloseButtonPin, INPUT);
   pinMode(solenoidPin, OUTPUT);
   pinMode(chargePotentiometerPin, INPUT);
-  pinMode(flashButtonPin, OUTPUT);
+  pinMode(flashSwitchPin, OUTPUT);
   pinMode(laserPin, OUTPUT);
   pinMode(speakerPin, OUTPUT);
+  pinMode(greenLEDPin, OUTPUT);
+  pinMode(redLEDPin, OUTPUT);
 }
 
 // Function to loop microcontroller
 void loop() {
   if(digitalRead(startButtonPin) == HIGH){
     Serial.println("Starting game...");
+    totalRoundTime = 0.0;
     delay(1000);
     if(PopIt()){
+      digitalWrite(greenLEDPin, HIGH);
+      delay(1000);
+      digitalWrite(greenLEDPin, LOW);
       if(ChargeIt()){
+        digitalWrite(greenLEDPin, HIGH);
+        delay(1000);
+        digitalWrite(greenLEDPin, LOW);
         if(FlashIt()){
+          digitalWrite(greenLEDPin, HIGH);
+          delay(1000);
+          digitalWrite(greenLEDPin, LOW);
           if(CloseIt()){
-
+            digitalWrite(greenLEDPin, HIGH);
+            delay(1000);
+            digitalWrite(greenLEDPin, LOW);
+            Serial.println("Your score: ");
+            Serial.println(round(totalRoundTime));
+          }
+          else {
+            digitalWrite(redLEDPin, HIGH);
+            delay(1000);
+            digitalWrite(redLEDPin, LOW);
           }
         }
+        else {
+          digitalWrite(redLEDPin, HIGH);
+          delay(1000);
+          digitalWrite(redLEDPin, LOW);
+        }
       }
+      else {
+        digitalWrite(redLEDPin, HIGH);
+        delay(1000);
+        digitalWrite(redLEDPin, LOW);
+      }
+    }
+    else {
+      digitalWrite(redLEDPin, HIGH);
+      delay(1000);
+      digitalWrite(redLEDPin, LOW);
     }
   }
 }
@@ -66,6 +105,7 @@ bool PopIt() {
   while (millis() - startTime < 2000) {
     if (digitalRead(popCloseButtonPin) == HIGH) {
       buttonPressed = true;
+      totalRoundTime += millis() - startTime;
       break;
     }
   }
@@ -89,6 +129,7 @@ bool ChargeIt() {
     if (analogRead(chargePotentiometerPin) > 25) {
       potentiometerMoved = true;
       potentiometerValue = analogRead(chargePotentiometerPin);
+      totalRoundTime += millis() - startTime;
       break;
     }
   }
@@ -108,8 +149,9 @@ bool FlashIt() {
   unsigned long startTime = millis();
   bool buttonPressed = false;
   while (millis() - startTime < 2000) {
-    if (digitalRead(flashButtonPin) == HIGH) {
+    if (digitalRead(flashSwitchPin) == HIGH) {
       buttonPressed = true;
+      totalRoundTime += millis() - startTime;
       break;
     }
   }
@@ -133,6 +175,7 @@ bool CloseIt() {
   while (millis() - startTime < 2000) {
     if (digitalRead(popCloseButtonPin) == HIGH) {
       buttonPressed = true;
+      totalRoundTime += millis() - startTime;
       break;
     }
   }
