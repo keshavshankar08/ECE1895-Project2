@@ -23,7 +23,9 @@ int roundScore;
 
 // Function to setup microcontroller
 void setup() {
+  // setup serial
   Serial.begin(9600);
+  Serial.println("Starting device...");
 
   // setup speaker
   tmrpcm.speakerPin = speakerPin;
@@ -55,59 +57,57 @@ void loop() {
     roundTime = 0.0;
     delay(1000);
     if(PopIt()){
-      digitalWrite(greenLEDPin, HIGH);
-      delay(1000);
-      digitalWrite(greenLEDPin, LOW);
+      CorrectLEDResponse();
       if(ChargeIt()){
-        digitalWrite(greenLEDPin, HIGH);
-        delay(1000);
-        digitalWrite(greenLEDPin, LOW);
+        CorrectLEDResponse();
         if(FlashIt()){
-          digitalWrite(greenLEDPin, HIGH);
-          delay(1000);
-          digitalWrite(greenLEDPin, LOW);
+          CorrectLEDResponse();
           if(CloseIt()){
-            digitalWrite(greenLEDPin, HIGH);
-            delay(1000);
-            digitalWrite(greenLEDPin, LOW);
+            CorrectLEDResponse();
             Serial.println("Your score: ");
-            roundScore = round(roundTime);
+            tmrpcm.play("YourScore.wav");
+            roundScore = round(roundTime/1000);
             Serial.println(roundScore);
+            ScoreSoundSelector(roundScore);
+            delay(2000);
             int highScore;
             EEPROM.get(0, highScore);
             Serial.println(highScore);
             if(roundScore < highScore) {
               Serial.println("New high score!");
+              tmrpcm.play("NewHighScore.wav");
               EEPROM.put(0, roundScore);
+            }
+            else {
+              Serial.println("High score is: ");
+              Serial.println(highScore);
+              tmrpcm.play("HighScoreIs.wav");
+              ScoreSoundSelector(highScore);
             }
           }
           else {
-            digitalWrite(redLEDPin, HIGH);
-            delay(1000);
-            digitalWrite(redLEDPin, LOW);
+            IncorrectLEDResponse();
+            tmrpcm.play("WillSmithMad.wav");
           }
         }
         else {
-          digitalWrite(redLEDPin, HIGH);
-          delay(1000);
-          digitalWrite(redLEDPin, LOW);
+          IncorrectLEDResponse();
+          tmrpcm.play("WillSmithMad.wav");
         }
       }
       else {
-        digitalWrite(redLEDPin, HIGH);
-        delay(1000);
-        digitalWrite(redLEDPin, LOW);
+        IncorrectLEDResponse();
+        tmrpcm.play("WillSmithMad.wav");
       }
     }
     else {
-      digitalWrite(redLEDPin, HIGH);
-      delay(1000);
-      digitalWrite(redLEDPin, LOW);
+      IncorrectLEDResponse();
+      tmrpcm.play("WillSmithMad.wav");
     }
-    tmrpcm.play("WillSmithWife.wav");
   }
 }
 
+// Runs "Pop it" game move
 bool PopIt() {
   Serial.println("Pop It!");
   tmrpcm.play("PopIt.wav");
@@ -131,6 +131,7 @@ bool PopIt() {
   }
 }
 
+// Runs "Charge it" game move
 bool ChargeIt() {
   Serial.println("Charge It!");
   tmrpcm.play("ChargeIt.wav");
@@ -154,6 +155,7 @@ bool ChargeIt() {
   }
 }
 
+// Runs "Flash it" game move
 bool FlashIt() {
   Serial.println("Flash It!");
   tmrpcm.play("FlashIt.wav");
@@ -178,6 +180,7 @@ bool FlashIt() {
   }
 }
 
+// Runs "Close It" game move
 bool CloseIt() {
   Serial.println("Close It!");
   tmrpcm.play("CloseIt.wav");
@@ -201,8 +204,62 @@ bool CloseIt() {
   }
 }
 
+// Flashes the laser
 void FlashLaser(){
   digitalWrite(laserPin, HIGH);
-  delay(3000);
+  delay(2000);
   digitalWrite(laserPin, LOW);
+}
+
+// Activates incorrect response game feedback
+void IncorrectLEDResponse() {
+  digitalWrite(redLEDPin, HIGH);
+  delay(1000);
+  digitalWrite(redLEDPin, LOW);
+}
+
+// Activates correct response game feedback
+void CorrectLEDResponse() {
+  digitalWrite(greenLEDPin, HIGH);
+  delay(1000);
+  digitalWrite(greenLEDPin, LOW);
+}
+
+// Plays the sound for a specific score 1-10
+void ScoreSoundSelector(int score) {
+  switch(score) {
+    case 1:
+      tmrpcm.play("Score1.wav");
+      break;
+    case 2:
+      tmrpcm.play("Score2.wav");
+      break;
+    case 3:
+      tmrpcm.play("Score3.wav");
+      break;
+    case 4:
+      tmrpcm.play("Score4.wav");
+      break;
+    case 5:
+      tmrpcm.play("Score5.wav");
+      break;
+    case 6:
+      tmrpcm.play("Score6.wav");
+      break;
+    case 7:
+      tmrpcm.play("Score7.wav");
+      break;
+    case 8:
+      tmrpcm.play("Score8.wav");
+      break;
+    case 9:
+      tmrpcm.play("Score9.wav");
+      break;
+    case 10:
+      tmrpcm.play("Score10.wav");
+      break;
+    default:
+      tmrpcm.play("ScoreOver.wav");
+      break;
+  }
 }
